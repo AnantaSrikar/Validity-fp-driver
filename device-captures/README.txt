@@ -1,0 +1,1 @@
+usb.bus_id==1 && usb.device_address==7
