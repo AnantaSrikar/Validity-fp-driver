@@ -1,0 +1,3 @@
+https://www.keil.com/pack/doc/mw/USB/html/_u_s_b__device__descriptor.html
+https://libusb.sourceforge.io/api-1.0/structlibusb__device__descriptor.html
+https://www.usb.org/defined-class-codes
