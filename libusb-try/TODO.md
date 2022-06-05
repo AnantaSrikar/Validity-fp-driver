@@ -1,8 +1,8 @@
 # TODO
 ### Replicate caputres packets to see if everything is working the same way
-- [ ] Make DESCRIPTOR Request DEVICE (0x80)
-- [ ] Make DESCRIPTOR Request CONFIGURATION (0x80)
-- [ ] Make another DESCRIPTOR Request CONFIGURATION (0x80) (Why?)
+- [x] Make DESCRIPTOR Request DEVICE (0x80)
+- [x] Make DESCRIPTOR Request CONFIGURATION (0x80)
+- [x] Make another DESCRIPTOR Request CONFIGURATION (0x80) (Why?) (Turns out all the above three happen at device initialization by the OS!)
 - [ ] Make an URB_CONTROL in (0x80) call
 - [ ] Make one URB_BULK out (0x01) followed by two URB_BULK in (0x81) a few times
 - [ ] Finally, Make multiple URB_INTERRUPT in (0x83)
