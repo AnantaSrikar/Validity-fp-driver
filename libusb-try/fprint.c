@@ -13,10 +13,16 @@
 
 int main(int argc, char **argv)
 {
+
+	// Function prototypes
+
+	void print_device_descriptor(struct libusb_device_descriptor);
+	void print_device_configuration(struct libusb_config_descriptor*);
+	void check_safe(int);
+
 	// All the pointers to handle the device
-	libusb_device_handle *fprint_dev_handle = NULL;
-	libusb_device *fprint_dev = NULL;
-	
+	libusb_device_handle *dev_handle = NULL;
+	libusb_device *dev = NULL;
 	libusb_context *context = NULL;
 
 	int ret = libusb_init(&context);
@@ -27,31 +33,33 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	fprint_dev_handle = libusb_open_device_with_vid_pid(context, DEV_VID, DEV_PID);
+	dev_handle = libusb_open_device_with_vid_pid(context, DEV_VID, DEV_PID);
 
-	if(fprint_dev_handle == NULL)
+	if(dev_handle == NULL)
 	{
 		printf("Fingerprint device not found :(\n");
 		
-		libusb_close(fprint_dev_handle);
+		libusb_close(dev_handle);
 		libusb_exit(context);
 		return -1;
 	}
 
-	// fprint_dev = libusb_get_device(fprint_dev_handle);
+	// dev = libusb_get_device(dev_handle);
 
 	// Claiming the device if used by some other driver
-	if(libusb_kernel_driver_active(fprint_dev_handle, 0) != 0)
+	if(libusb_kernel_driver_active(dev_handle, 0) != 0)
 	{
 		printf("Kernel driver is active. Detach and try again\n");
-		libusb_detach_kernel_driver(fprint_dev_handle, 0);
+		libusb_detach_kernel_driver(dev_handle, 0);
 	}
+
+	dev = libusb_get_device(dev_handle);
 
 	// TODO: Set configuration before claiming device using libusb_set_configuration(), if needed
 	// Found '1' as the only bConfigurationValue from reverse-engineering the device
 	// Also found '0' as the only bInterfaceNumber
 
-	if(libusb_claim_interface(fprint_dev_handle, 0) == 0)
+	if(libusb_claim_interface(dev_handle, 0) == 0)
 	{
 		printf("Claimed the fingerprint scanner. I/O operations can now be performed\n");
 	}
@@ -64,33 +72,61 @@ int main(int argc, char **argv)
 
 	// Communicating with the device, gl
 
-	unsigned char *stuff;
-	stuff = (unsigned char*)malloc(sizeof(unsigned char) * 2);
+	// DESCRIPTOR Request DEVICE @ 0x80
 
-	/*
-		bmRequestType = 0xc0
-		bRequest = 20
-		wValue = 0x0000
-		wIndex = 0x0000 (0)
-		wLength = 2
-		timeout = 0 (Unlimited timeout)
-	*/
+	printf("Attmpting to get DECRIPTOR for device...\n");
 
-	int reply = libusb_control_transfer(fprint_dev_handle, 0xc0, 20, 0x0000, 0x0000, stuff, 2, 0);
+	struct libusb_device_descriptor device_descriptor;
+	ret = libusb_get_device_descriptor(dev, &device_descriptor);
+	check_safe(ret);
 	
-	printf("Reply: %d\nStuff: '", reply);
-	for(int i = 0; i < 2; i++)
-		printf("%u", stuff[i]);
-	printf("'\n");
+	print_device_descriptor(device_descriptor);
+
+	// Getting current configuration
+	struct libusb_config_descriptor *dev_config = malloc(sizeof(struct libusb_config_descriptor));
+	ret = libusb_get_active_config_descriptor(dev, &dev_config);
+	check_safe(ret);
+
+	print_device_configuration(dev_config);
 
 	printf("Releasing the device...\n");
-	libusb_release_interface(fprint_dev_handle, 0);
 	
-
-	libusb_close(fprint_dev_handle);
+	libusb_release_interface(dev_handle, 0);
+	libusb_close(dev_handle);
 	libusb_exit(context);
 
-
-
 	return(0);
+}
+
+// Function to check if device interactions worked fine
+void check_safe(int ret)
+{
+	if(ret != 0)
+	{
+		printf("Something bad happened: %d\n", ret);
+		exit(-1);
+	}
+}
+
+// Function to print all the device descriptor values
+void print_device_descriptor(struct libusb_device_descriptor device_descriptor)
+{
+	printf("Need to print device decriptor here :p\n");
+}
+
+// Function to print the configs
+void print_device_configuration(struct libusb_config_descriptor *dev_config)
+{
+	printf("\tbNumInterfaces = \t%d\n", dev_config -> bNumInterfaces);
+	
+	const struct libusb_interface *interface = dev_config -> interface;
+
+	const struct libusb_interface_descriptor *interface_descriptor = interface -> altsetting;
+
+	printf("\tbNumEndpoints: \t%d\n", interface_descriptor -> bNumEndpoints);
+
+	for(int i = 0; i < interface_descriptor -> bNumEndpoints; i++)
+	{
+		printf("\t\tbEndpointAddress: 0x%01x\n", interface_descriptor -> endpoint[i].bEndpointAddress);
+	}
 }

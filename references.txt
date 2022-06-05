@@ -1,3 +1,5 @@
+https://reverseengineering.stackexchange.com/questions/2416/how-to-reverse-engineer-simple-usb-device-windows-linux
 https://www.keil.com/pack/doc/mw/USB/html/_u_s_b__device__descriptor.html
 https://libusb.sourceforge.io/api-1.0/structlibusb__device__descriptor.html
 https://www.usb.org/defined-class-codes
+https://www.usb.org/about
