@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 
 	void print_device_descriptor(struct libusb_device_descriptor);
 	void print_device_configuration(struct libusb_config_descriptor*);
-	void check_safe(int);
+	void check_safe(int, int);
 
 	// All the pointers to handle the device
 	libusb_device_handle *dev_handle = NULL;
@@ -26,30 +26,23 @@ int main(int argc, char **argv)
 	libusb_context *context = NULL;
 
 	int ret = libusb_init(&context);
-
-	if(ret < 0)
-	{
-		perror("libusb_init");
-		exit(1);
-	}
+	check_safe(ret, 0);
 
 	dev_handle = libusb_open_device_with_vid_pid(context, DEV_VID, DEV_PID);
 
 	if(dev_handle == NULL)
 	{
-		printf("Fingerprint device not found :(\n");
+		printf("\nFingerprint device not found :(\n");
 		
 		libusb_close(dev_handle);
 		libusb_exit(context);
 		return -1;
 	}
 
-	// dev = libusb_get_device(dev_handle);
-
 	// Claiming the device if used by some other driver
 	if(libusb_kernel_driver_active(dev_handle, 0) != 0)
 	{
-		printf("Kernel driver is active. Detach and try again\n");
+		printf("\nKernel driver is active. Detach and try again\n");
 		libusb_detach_kernel_driver(dev_handle, 0);
 	}
 
@@ -60,34 +53,61 @@ int main(int argc, char **argv)
 	// Also found '0' as the only bInterfaceNumber
 
 	if(libusb_claim_interface(dev_handle, 0) == 0)
-	{
-		printf("Claimed the fingerprint scanner. I/O operations can now be performed\n");
-	}
+		printf("\nClaimed the fingerprint scanner. I/O operations can now be performed\n");
 
 	else
 	{
-		printf("Failed to claim the device, something bad happened :(\n");
+		printf("\nFailed to claim the device, something bad happened :(\n");
 		return -1;
 	}
 
-	// Communicating with the device, gl
+	// Communicating with the device, gl!
 
 	// DESCRIPTOR Request DEVICE @ 0x80
-
-	printf("Attmpting to get DECRIPTOR for device...\n");
+	printf("\nAttmpting to get DECRIPTOR for device...\n");
 
 	struct libusb_device_descriptor device_descriptor;
 	ret = libusb_get_device_descriptor(dev, &device_descriptor);
-	check_safe(ret);
+	check_safe(ret, 0);
 	
 	print_device_descriptor(device_descriptor);
 
 	// Getting current configuration
 	struct libusb_config_descriptor *dev_config = malloc(sizeof(struct libusb_config_descriptor));
 	ret = libusb_get_active_config_descriptor(dev, &dev_config);
-	check_safe(ret);
+	check_safe(ret, 0);
 
 	print_device_configuration(dev_config);
+
+	// Emulating URB_CONTROL in @ 0x80, use below values from reverse engineering
+	/*
+		bmRequestType:	0xc0
+		bRequest: 		20
+		wValue:			0x0000
+		wIndex:			0 (0x0000)
+		wLength:		2
+	*/
+
+	// Announce URB_CONTROL in attempt
+	printf("\nAttempting to call URB_CONTROL in!\n");
+	
+	// Place to store data returned
+	uint16_t wLength = 2;
+	unsigned char *data = malloc(sizeof(unsigned char) * wLength);
+
+	ret = libusb_control_transfer(
+		dev_handle,	// device_handle
+		0xc0,		// bmRequestType
+		20,			// bRequest
+		0x0000,		// wValue
+		0x0000,		// wIndex
+		data,		// data
+		wLength,	// wLength
+		0			// Timeout
+		);
+	check_safe(ret, wLength);
+
+	printf("Success! Got data: ");
 
 	printf("Releasing the device...\n");
 	
@@ -99,11 +119,11 @@ int main(int argc, char **argv)
 }
 
 // Function to check if device interactions worked fine
-void check_safe(int ret)
+void check_safe(int ret, int check)
 {
-	if(ret != 0)
+	if(ret != check)
 	{
-		printf("Something bad happened: %d\n", ret);
+		printf("Something bad happened: %s\n", libusb_error_name(ret));
 		exit(-1);
 	}
 }
