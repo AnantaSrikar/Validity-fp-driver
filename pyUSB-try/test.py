@@ -35,6 +35,23 @@ def main():
 
 	print("Finished clearing endpoints!")
 
+	# Send URB_CONTROL IN packet
+	bmRequestType = 0xc0	# Determines the transfer direction
+	bRequest = 0x14	# 20
+	wValue = 0
+	wIndex = 0
+	wLength = 2
+
+	data = dev.ctrl_transfer(bmRequestType, bRequest, wValue, wIndex, wLength)
+
+	# We should receive 0s
+	for bit in data:
+		if bit:
+			print("Something is wrong with the scanner!")
+
+	print("Received data: ", data)
+
+	# Now, BULK OUT
 
 if __name__ == "__main__":
 	main()
