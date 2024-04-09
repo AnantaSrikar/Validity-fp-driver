@@ -1,6 +1,7 @@
 import usb.core
 import usb.util
 import usb.control
+import array
 
 ID_VENDOR = 0x138a
 ID_PRODUCT = 0x00ab
@@ -52,6 +53,15 @@ def main():
 	print("Received data: ", data)
 
 	# Now, BULK OUT
+	data = [1]
+	bulk_out_data = array.array('B', data)
+	bytes_written = dev.write(0x01, bulk_out_data)
+	print("Bytes written: ", bytes_written)
 
+	# BULK IN
+	urb_len = 38 # Bytes. Got this value off reverse engineering
+	bulk_in_data = dev.read(0x81, urb_len)
+	print("Bytes read: ", bulk_in_data)
+	
 if __name__ == "__main__":
 	main()
