@@ -1,35 +1,40 @@
 import usb.core
 import usb.util
+import usb.control
 
-dev = usb.core.find(idVendor=0x138a, idProduct=0x00ab)
+ID_VENDOR = 0x138a
+ID_PRODUCT = 0x00ab
 
-if dev is None:
-	raise ValueError("Fingerprint scanner not found :(")
+def main():
 
-else:
-	print('Found the fingerprint scanner. Proceeding...\n\n')
+	# Initialize the device
+	dev = usb.core.find(idVendor=ID_VENDOR, idProduct=ID_PRODUCT)
 
-dev.set_configuration()
+	# Check if the scanner is found
+	if dev is None:
+		raise ValueError("Fingerprint scanner not found :(")
 
-# cfg = dev.get_active_configuration()
+	else:
+		print('Found the fingerprint scanner. Proceeding...\n')
+
+	# print(dev)
+
+	# Set the first configuration, which is the only configuration
+	dev.set_configuration()
+
+	# get an endpoint instance
+	config = dev.get_active_configuration()
+	
+	interface = config[(0,0)]
+
+	# CLEAR FEATURE Requests as done in windows driver
+	endpoint_clr = [0x01, 0x81, 0x82, 0x83, 0x84]
+	
+	for endpoint in endpoint_clr:
+		dev.clear_halt(endpoint)
+
+	print("Finished clearing endpoints!")
 
 
-cfg = dev.get_active_configuration()
-intf = cfg[(0,0)]
-
-# print(intf)
-
-for breh in intf:
-	print(hex(breh.bEndpointAddress))
-
-print(hex(usb.util.ENDPOINT_OUT))
-print(int('0x80', base=16)) # = 
-
-# ep = usb.util.find_descriptor(intf, custom_match = lambda e: usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT)
-
-# print(ep)
-
-# assert ep is not None
-
-# # write the data
-# ep.write('test')
+if __name__ == "__main__":
+	main()
